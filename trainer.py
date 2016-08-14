@@ -1,7 +1,7 @@
 from scipy.ndimage import convolve
 from sklearn import datasets, linear_model, metrics
 from sklearn.cross_validation import train_test_split
-from sklearn.neural_network import BernoulliRBM
+from sklearn.neural_network import BernoulliRBM, MLPClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.externals import joblib
 from sklearn.grid_search import GridSearchCV
@@ -14,9 +14,8 @@ class CaptchaClassifier:
 		if os.path.exists('model/captcha.pkl'):
 			self.classifier = joblib.load('model/captcha.pkl')
 		else:
-			self.logistic = linear_model.LogisticRegression(C = 10.0)
-			self.rbm = BernoulliRBM(n_components = 100, n_iter = 80, learning_rate = 0.01, verbose = True)
-			self.classifier = Pipeline(steps=[('rbm', self.rbm), ('logistic', self.logistic)])
+			self.classifier = MLPClassifier(hidden_layer_sizes=(100, 100), max_iter=1000, alpha=1e-4,
+				algorithm='sgd', verbose=10, tol=1e-4, random_state=1)
 			
 
 		
@@ -37,19 +36,18 @@ class CaptchaClassifier:
 	def trainData(self):
 		self.loadData()
 		self.data, self.target = self.nudge_dataset(self.data, self.target)
-		self.data = (self.data - np.min(self.data, 0)) / (np.max(self.data, 0) + 0.0001)
 		self.classifier.fit(self.data, self.target)
 		joblib.dump(self.classifier,'model/captcha.pkl')
 		
 	def produceCross(self):
 		self.loadData()
-		self.data, self.target = self.nudge_dataset(self.data, self.target)
-		self.data = (self.data - np.min(self.data, 0)) / (np.max(self.data, 0) + 0.0001)
 		self.X_train, self.X_test, self.Y_train, self.Y_test = train_test_split(self.data, self.target,
 			test_size=0.2, random_state=0)
+		self.X_train, self.Y_train = self.nudge_dataset(self.X_train, self.Y_train)
+		self.X_test, self.Y_test = self.nudge_dataset(self.X_test, self.Y_test)
 			
 	def logTest(self):
-		logistic_classifier = linear_model.LogisticRegression(C=100.0)
+		logistic_classifier = linear_model.LogisticRegression(C=100.0,verbose = True)
 		logistic_classifier.fit(self.X_train,self.Y_train)
 		predicted = logistic_classifier.predict(self.X_test)
 		print("Classification report for classifier %s:\n%s\n"
@@ -87,6 +85,16 @@ class CaptchaClassifier:
 		
 		for p in sorted(params.keys()):
 			print ("\t %s: %f" % (p, bestParams[p]))
+			
+	def mlpTest(self):
+		mlp = MLPClassifier(hidden_layer_sizes=(100, 100), max_iter=1000, alpha=1e-4,
+			algorithm='sgd', verbose=10, tol=1e-4, random_state=1)
+		mlp.fit(self.X_train,self.Y_train)
+		predicted = mlp.predict(self.X_test)
+		print("Classification report for classifier %s:\n%s\n"
+			% (mlp, metrics.classification_report(self.Y_test, predicted)))
+		print("Confusion matrix:\n%s"
+			% metrics.confusion_matrix(self.Y_test, predicted))
 		
 	def test(self):
 		self.loadData()
