@@ -15,7 +15,7 @@ class CaptchaClassifier:
 			self.classifier = joblib.load('model/captcha.pkl')
 		else:
 			self.classifier = MLPClassifier(hidden_layer_sizes=(100, 100), max_iter=1000, alpha=1e-4,
-				algorithm='sgd', verbose=10, tol=1e-4, random_state=1)
+				solver='sgd', verbose=10, tol=1e-4, random_state=1)
 			
 
 		
@@ -88,7 +88,7 @@ class CaptchaClassifier:
 			
 	def mlpTest(self):
 		mlp = MLPClassifier(hidden_layer_sizes=(100, 100), max_iter=1000, alpha=1e-4,
-			algorithm='sgd', verbose=10, tol=1e-4, random_state=1)
+			solver='sgd', verbose=10, tol=1e-4, random_state=1)
 		mlp.fit(self.X_train,self.Y_train)
 		predicted = mlp.predict(self.X_test)
 		print("Classification report for classifier %s:\n%s\n"
